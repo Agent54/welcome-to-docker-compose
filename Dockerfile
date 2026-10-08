@@ -11,10 +11,16 @@ COPY package*.json ./
 COPY ./src ./src
 COPY ./public ./public
 
-# Install node packages, install serve, build the app, and remove dependencies at the end
-RUN npm install \
+# Install the locked dependencies and build the static site.
+RUN npm ci --ignore-scripts \
     && npm run build
 
 # Use a slim nginx image to reduce our image size drastically
 FROM nginx:alpine-slim
 COPY --from=builder /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+USER nginx
+EXPOSE 8080
+ENTRYPOINT ["nginx"]
+CMD ["-g", "daemon off;"]

@@ -1,0 +1,40 @@
+name: Compose smoke check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose
+        run: docker compose config --quiet
+      - name: Build and start
+        run: docker compose up --build -d --wait --wait-timeout 60
+      - name: Verify the page and runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error http://localhost:8080/ -o index.html
+          grep -q '<div id="root"></div>' index.html
+          asset=$(grep -oE '/static/js/[^" ]+\.js' index.html | head -n 1)
+          test -n "$asset"
+          curl --fail --silent --show-error "http://localhost:8080$asset" -o /dev/null
+          test "$(docker compose exec -T web id -u)" != 0
+          docker compose exec -T web sh -c '! touch /usr/share/nginx/html/write-test'
+          container_id=$(docker compose ps -q web)
+          test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$container_id")" = true
+          test "$(docker inspect --format '{{json .HostConfig.CapDrop}}' "$container_id")" = '["ALL"]'
+          test "$(docker inspect --format '{{range .Mounts}}{{if ne .Type "tmpfs"}}{{.Type}}{{end}}{{end}}' "$container_id")" = ''
+      - name: Logs and cleanup
+        if: always()
+        run: |
+          docker compose logs
+          docker compose down

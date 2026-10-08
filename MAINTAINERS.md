@@ -1,4 +1,11 @@
-# Maintaining the docker/welcome-to-docker Image
+# Upstream maintenance notes
+
+The notes below are preserved from Docker's upstream repository and describe
+the upstream `docker/welcome-to-docker` image. For this Agent54 Compose demo,
+see [README.md](README.md). This repository does not publish Docker Hub images
+or automatically merge upstream branches.
+
+## Maintaining the docker/welcome-to-docker Image
 
 This document is for maintainers of this repository.
 
